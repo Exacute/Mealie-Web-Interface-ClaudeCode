@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Wizard - Recipe Dredger</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .setup-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .setup-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .setup-header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .setup-header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        .wizard-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .wizard-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .step-number {
+            background: #3498db;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-content h3 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+        .step-content p {
+            margin: 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        .help-box {
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .help-box strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .help-box a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .help-box a:hover {
+            text-decoration: underline;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .test-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .optional-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px dashed #ddd;
+        }
+        .submit-section {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        .btn-large {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <h1>🎉 Welcome to Recipe Dredger!</h1>
+            <p>Let's get you set up in just a few minutes</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('setup.save_setup') }}" id="setupForm">
+            <div class="wizard-card">
+                <div class="wizard-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Mealie Configuration</h3>
+                        <p>Connect to your Mealie recipe manager</p>
+                    </div>
+                </div>
+
+                <div class="help-box">
+                    <strong>Don't have an API token yet?</strong>
+                    <p>
+                        1. Enter your Mealie URL below, then click:
+                        <button type="button" onclick="openMealieTokenPage()" class="btn btn-secondary btn-sm">Open API Tokens Page</button>
+                    </p>
+                    <p>2. This will open directly to: <strong>/user/profile/api-tokens</strong></p>
+                    <p>3. Click <strong>Create New Token</strong> in Mealie</p>
+                    <p>4. Copy the token and paste it below</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="mealie_url">Mealie URL <span style="color: red;">*</span></label>
+                    <input type="text"
+                           id="mealie_url"
+                           name="mealie_url"
+                           class="form-control"
+                           placeholder="http://192.168.1.100:9000"
+                           required
+                           value="http://">
+                    <p class="help-text">Include http:// or https:// and port number (usually 9000)</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="mealie_token">Mealie API Token <span style="color: red;">*</span></label>
+                    <input type="text"
+                           id="mealie_token"
+                           name="mealie_token"
+                           class="form-control"
+                           placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                           required>
+                    <p class="help-text">Long string starting with 'eyJ...'</p>
+                </div>
+
+                <button type="button" onclick="testMealieConnection()" class="btn btn-secondary">
+                    Test Mealie Connection
+                </button>
+                <div id="mealie-test-result" class="test-result"></div>
+            </div>
+
+            <div class="wizard-card optional-section">
+                <div class="wizard-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Tandoor Configuration (Optional)</h3>
+                        <p>Also import to Tandoor? Leave blank to skip</p>
+                    </div>
+                </div>
+
+                <div class="help-box">
+                    <strong>Using Tandoor too?</strong>
+                    <p>
+                        1. Open your Tandoor instance: <input type="text" id="tandoor_url_preview" placeholder="http://192.168.1.101:8080" style="width: 250px; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                        <button type="button" onclick="openTandoorTokenPage()" class="btn btn-secondary btn-sm">Open Tandoor</button>
+                    </p>
+                    <p>2. Go to <strong>Settings → API Tokens</strong></p>
+                    <p>3. Click <strong>Create New Token</strong></p>
+                    <p>4. Copy the token and paste it below</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="tandoor_url">Tandoor URL (Optional)</label>
+                    <input type="text"
+                           id="tandoor_url"
+                           name="tandoor_url"
+                           class="form-control"
+                           placeholder="http://192.168.1.101:8080"
+                           value="http://">
+                    <p class="help-text">Include http:// or https:// and port number (usually 8080)</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="tandoor_key">Tandoor API Key (Optional)</label>
+                    <input type="text"
+                           id="tandoor_key"
+                           name="tandoor_key"
+                           class="form-control"
+                           placeholder="Your Tandoor API key">
+                </div>
+
+                <button type="button" onclick="testTandoorConnection()" class="btn btn-secondary">
+                    Test Tandoor Connection
+                </button>
+                <div id="tandoor-test-result" class="test-result"></div>
+            </div>
+
+            <div class="submit-section">
+                <button type="submit" class="btn btn-primary btn-large">
+                    Complete Setup & Start Using Recipe Dredger
+                </button>
+                <p style="margin-top: 15px; color: #7f8c8d;">
+                    You can always change these settings later in the Settings page
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Keep URL preview in sync
+        document.getElementById('mealie_url').addEventListener('input', function() {
+            document.getElementById('mealie_url_preview').value = this.value;
+        });
+
+        document.getElementById('tandoor_url').addEventListener('input', function() {
+            document.getElementById('tandoor_url_preview').value = this.value;
+        });
+
+        function openMealieTokenPage() {
+            const url = document.getElementById('mealie_url_preview').value || document.getElementById('mealie_url').value;
+            if (url && url !== 'http://' && url !== 'https://') {
+                // Direct link to API tokens page
+                const tokenUrl = url.replace(/\/$/, '') + '/user/profile/api-tokens';
+                window.open(tokenUrl, '_blank');
+            } else {
+                alert('Please enter your Mealie URL first');
+            }
+        }
+
+        function openTandoorTokenPage() {
+            const url = document.getElementById('tandoor_url_preview').value || document.getElementById('tandoor_url').value;
+            if (url && url !== 'http://' && url !== 'https://') {
+                window.open(url, '_blank');
+            } else {
+                alert('Please enter your Tandoor URL first');
+            }
+        }
+
+        function testMealieConnection() {
+            const url = document.getElementById('mealie_url').value;
+            const token = document.getElementById('mealie_token').value;
+            const resultDiv = document.getElementById('mealie-test-result');
+
+            if (!url || !token) {
+                showResult(resultDiv, false, 'Please enter both URL and token');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing connection...';
+
+            fetch('/setup/test-mealie', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url, token: token })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showResult(resultDiv, data.success, data.message);
+            })
+            .catch(error => {
+                showResult(resultDiv, false, 'Error: ' + error.message);
+            });
+        }
+
+        function testTandoorConnection() {
+            const url = document.getElementById('tandoor_url').value;
+            const token = document.getElementById('tandoor_key').value;
+            const resultDiv = document.getElementById('tandoor-test-result');
+
+            if (!url || !token) {
+                showResult(resultDiv, false, 'Please enter both URL and API key');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing connection...';
+
+            fetch('/setup/test-tandoor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url, token: token })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showResult(resultDiv, data.success, data.message);
+            })
+            .catch(error => {
+                showResult(resultDiv, false, 'Error: ' + error.message);
+            });
+        }
+
+        function showResult(element, success, message) {
+            element.style.display = 'block';
+            element.className = success ? 'test-result test-success' : 'test-result test-error';
+            element.textContent = (success ? '✓ ' : '✗ ') + message;
+        }
+
+        // Form validation
+        document.getElementById('setupForm').addEventListener('submit', function(e) {
+            const mealieUrl = document.getElementById('mealie_url').value;
+            const mealieToken = document.getElementById('mealie_token').value;
+
+            if (!mealieUrl || mealieUrl === 'http://' || mealieUrl === 'https://') {
+                e.preventDefault();
+                alert('Please enter your Mealie URL');
+                return false;
+            }
+
+            if (!mealieToken) {
+                e.preventDefault();
+                alert('Please enter your Mealie API token');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

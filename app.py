@@ -58,10 +58,12 @@ app.set_scraper_thread = set_scraper_thread
 from routes.main import main_bp
 from routes.settings import settings_bp
 from routes.scraper_control import scraper_bp
+from routes.setup import setup_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(settings_bp, url_prefix='/settings')
 app.register_blueprint(scraper_bp, url_prefix='/scraper')
+app.register_blueprint(setup_bp)
 
 if __name__ == '__main__':
     print("=" * 60)

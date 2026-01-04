@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, redirect, url_for
 from config.config_manager import load_config, get_site_lists
+from config.setup_wizard import is_first_run
 from pathlib import Path
 
 main_bp = Blueprint('main', __name__)
@@ -8,6 +9,10 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 def dashboard():
     """Main dashboard showing current configuration and status"""
+    # Check if this is first run - redirect to setup wizard
+    if is_first_run():
+        return redirect(url_for('setup.setup_wizard'))
+
     config = load_config()
     site_lists = get_site_lists()
 
