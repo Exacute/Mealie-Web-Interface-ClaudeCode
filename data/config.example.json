@@ -1,0 +1,19 @@
+{
+  "mealie": {
+    "enabled": true,
+    "url": "http://YOUR_MEALIE_IP:9000",
+    "api_token": "YOUR_MEALIE_API_TOKEN_HERE"
+  },
+  "tandoor": {
+    "enabled": false,
+    "url": "http://YOUR_TANDOOR_IP:8080",
+    "api_key": "YOUR_TANDOOR_API_KEY_HERE"
+  },
+  "scraper": {
+    "dry_run": false,
+    "target_recipes_per_site": 50,
+    "scan_depth": 1000,
+    "delay_between_imports": 1.5
+  },
+  "active_site_list": "sites.txt"
+}

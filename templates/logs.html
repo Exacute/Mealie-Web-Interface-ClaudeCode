@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Recipe Dredger{% endblock %}
+
+{% block content %}
+<h1>Scraper Logs</h1>
+
+<div class="card logs-card">
+    <div class="logs-header">
+        <p class="help-text">Showing last 500 log entries</p>
+        <button class="btn btn-secondary btn-sm" onclick="location.reload()">Refresh</button>
+    </div>
+
+    <div class="logs-container">
+        <pre class="logs-content">{% for line in log_lines %}{{ line }}{% endfor %}</pre>
+    </div>
+
+    {% if not log_lines %}
+        <p class="no-data">No logs available yet. Start the scraper to generate logs.</p>
+    {% endif %}
+</div>
+
+<div class="form-actions">
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh logs every 5 seconds if scraper is running
+let autoRefresh = null;
+
+function checkAndRefresh() {
+    fetch('/scraper/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.running) {
+                // Refresh the page to update logs
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking scraper status:', error);
+        });
+}
+
+// Start auto-refresh
+autoRefresh = setInterval(checkAndRefresh, 5000);
+
+// Clean up on page unload
+window.addEventListener('beforeunload', function() {
+    if (autoRefresh) {
+        clearInterval(autoRefresh);
+    }
+});
+</script>
+{% endblock %}

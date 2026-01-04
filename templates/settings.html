@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Recipe Dredger{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+
+<form method="POST" action="{{ url_for('settings.update_settings') }}" class="settings-form">
+    <div class="card">
+        <h2>Mealie Settings</h2>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="mealie_enabled" {% if config.mealie.enabled %}checked{% endif %}>
+                <span>Enable Mealie</span>
+            </label>
+            <p class="help-text">Import recipes to Mealie recipe manager</p>
+        </div>
+
+        <div class="form-group">
+            <label for="mealie_url">Mealie URL:</label>
+            <input type="text" id="mealie_url" name="mealie_url"
+                   value="{{ config.mealie.url }}"
+                   placeholder="http://192.168.1.79:9000"
+                   class="form-control">
+            <p class="help-text">Base URL of your Mealie instance</p>
+        </div>
+
+        <div class="form-group">
+            <label for="mealie_token">API Token:</label>
+            <input type="password" id="mealie_token" name="mealie_token"
+                   value="{{ config.mealie.api_token }}"
+                   class="form-control">
+            <p class="help-text">Found in Mealie: User Profile → Manage API Tokens</p>
+        </div>
+
+        <button type="button" class="btn btn-secondary" onclick="testConnection('mealie')">
+            Test Connection
+        </button>
+    </div>
+
+    <div class="card">
+        <h2>Tandoor Settings</h2>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="tandoor_enabled" {% if config.tandoor.enabled %}checked{% endif %}>
+                <span>Enable Tandoor</span>
+            </label>
+            <p class="help-text">Import recipes to Tandoor recipe manager</p>
+        </div>
+
+        <div class="form-group">
+            <label for="tandoor_url">Tandoor URL:</label>
+            <input type="text" id="tandoor_url" name="tandoor_url"
+                   value="{{ config.tandoor.url }}"
+                   placeholder="http://192.168.1.80:8080"
+                   class="form-control">
+            <p class="help-text">Base URL of your Tandoor instance</p>
+        </div>
+
+        <div class="form-group">
+            <label for="tandoor_key">API Key:</label>
+            <input type="password" id="tandoor_key" name="tandoor_key"
+                   value="{{ config.tandoor.api_key }}"
+                   class="form-control">
+            <p class="help-text">Found in Tandoor: Settings → API Tokens</p>
+        </div>
+
+        <button type="button" class="btn btn-secondary" onclick="testConnection('tandoor')">
+            Test Connection
+        </button>
+    </div>
+
+    <div class="card">
+        <h2>Scraper Settings</h2>
+
+        <div class="form-group">
+            <label for="target_recipes">Target Recipes per Site:</label>
+            <input type="number" id="target_recipes" name="target_recipes"
+                   value="{{ config.scraper.target_recipes_per_site }}"
+                   min="1" max="1000"
+                   class="form-control">
+            <p class="help-text">Maximum number of NEW recipes to import from each site</p>
+        </div>
+
+        <div class="form-group">
+            <label for="scan_depth">Scan Depth:</label>
+            <input type="number" id="scan_depth" name="scan_depth"
+                   value="{{ config.scraper.scan_depth }}"
+                   min="100" max="5000"
+                   class="form-control">
+            <p class="help-text">Maximum number of sitemap entries to check per site</p>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="dry_run" {% if config.scraper.dry_run %}checked{% endif %}>
+                <span>Dry Run (Test Mode)</span>
+            </label>
+            <p class="help-text">Test the scraper without actually importing recipes</p>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function testConnection(service) {
+    // Show loading state
+    event.target.disabled = true;
+    event.target.textContent = 'Testing...';
+
+    fetch(`/settings/test-connection/${service}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✓ Connection successful!\n\n${data.message}`);
+            } else {
+                alert(`✗ Connection failed!\n\n${data.message}`);
+            }
+        })
+        .catch(error => {
+            alert(`Error testing connection:\n${error}`);
+        })
+        .finally(() => {
+            // Reset button state
+            event.target.disabled = false;
+            event.target.textContent = 'Test Connection';
+        });
+}
+</script>
+{% endblock %}

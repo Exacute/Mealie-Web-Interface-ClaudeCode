@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Recipe Dredger{% endblock %}
+
+{% block content %}
+<h1>Recipe Dredger Dashboard</h1>
+
+<div class="dashboard-grid">
+    <div class="card status-card">
+        <h2>Scraper Status</h2>
+        <div class="status-info">
+            <div class="status-row">
+                <span class="label">Status:</span>
+                <span id="status-text" class="value {% if scraper_status.running %}status-running{% else %}status-stopped{% endif %}">
+                    {% if scraper_status.running %}Running{% else %}Stopped{% endif %}
+                </span>
+            </div>
+            <div class="status-row">
+                <span class="label">Progress:</span>
+                <span id="progress-text" class="value">{{ scraper_status.progress }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div id="progress-bar-fill" class="progress-fill" style="width: {{ scraper_status.progress }}%"></div>
+            </div>
+            <div class="status-row">
+                <span class="label">Current Site:</span>
+                <span id="current-site" class="value site-url">{{ scraper_status.current_site or '-' }}</span>
+            </div>
+            <div class="status-row">
+                <span class="label">Total Imported:</span>
+                <span id="total-imported" class="value">{{ scraper_status.total_imported }}</span>
+            </div>
+            <div class="status-row">
+                <span class="label">Sites Progress:</span>
+                <span id="sites-progress" class="value">{{ scraper_status.sites_completed }} / {{ scraper_status.sites_total }}</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="start-btn" class="btn btn-primary" onclick="startScraper()" {% if scraper_status.running %}disabled{% endif %}>
+                Start Scraper
+            </button>
+            <button id="stop-btn" class="btn btn-danger" onclick="stopScraper()" {% if not scraper_status.running %}disabled{% endif %}>
+                Stop Scraper
+            </button>
+        </div>
+    </div>
+
+    <div class="card config-card">
+        <h2>Current Configuration</h2>
+        <table class="info-table">
+            <tr>
+                <td><strong>Mealie:</strong></td>
+                <td>
+                    <span class="badge {% if config.mealie.enabled %}badge-success{% else %}badge-disabled{% endif %}">
+                        {% if config.mealie.enabled %}Enabled{% else %}Disabled{% endif %}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Tandoor:</strong></td>
+                <td>
+                    <span class="badge {% if config.tandoor.enabled %}badge-success{% else %}badge-disabled{% endif %}">
+                        {% if config.tandoor.enabled %}Enabled{% else %}Disabled{% endif %}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Active Site List:</strong></td>
+                <td><code>{{ config.active_site_list }}</code></td>
+            </tr>
+            <tr>
+                <td><strong>Target Recipes/Site:</strong></td>
+                <td>{{ config.scraper.target_recipes_per_site }}</td>
+            </tr>
+            <tr>
+                <td><strong>Scan Depth:</strong></td>
+                <td>{{ config.scraper.scan_depth }}</td>
+            </tr>
+            <tr>
+                <td><strong>Dry Run:</strong></td>
+                <td>
+                    <span class="badge {% if config.scraper.dry_run %}badge-warning{% else %}badge-info{% endif %}">
+                        {% if config.scraper.dry_run %}Yes (Testing Mode){% else %}No{% endif %}
+                    </span>
+                </td>
+            </tr>
+        </table>
+        <div class="card-footer">
+            <a href="{{ url_for('settings.settings') }}" class="btn btn-secondary">Edit Settings</a>
+        </div>
+    </div>
+
+    <div class="card site-lists-card">
+        <h2>Site Lists</h2>
+        <p class="help-text">Select a different site list to use for scraping:</p>
+        <div class="site-list-selector">
+            {% for site_list in site_lists %}
+            <label class="radio-label">
+                <input type="radio" name="site_list" value="{{ site_list }}"
+                       {% if site_list == config.active_site_list %}checked{% endif %}
+                       onchange="setActiveSiteList('{{ site_list }}')">
+                <span class="radio-text">{{ site_list }}</span>
+                {% if site_list == config.active_site_list %}
+                    <span class="badge badge-primary">Active</span>
+                {% endif %}
+            </label>
+            {% endfor %}
+        </div>
+        {% if not site_lists %}
+            <p class="no-data">No site lists found. Please create a .txt file in the data/ directory.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh status every 2 seconds
+const statusInterval = setInterval(updateScraperStatus, 2000);
+
+// Initial status update
+updateScraperStatus();
+
+function updateScraperStatus() {
+    fetch('/scraper/status')
+        .then(response => response.json())
+        .then(data => {
+            // Update status text and badge
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = data.running ? 'Running' : 'Stopped';
+            statusText.className = data.running ? 'value status-running' : 'value status-stopped';
+
+            // Update progress
+            document.getElementById('progress-text').textContent = data.progress + '%';
+            document.getElementById('progress-bar-fill').style.width = data.progress + '%';
+
+            // Update current site
+            document.getElementById('current-site').textContent = data.current_site || '-';
+
+            // Update totals
+            document.getElementById('total-imported').textContent = data.total_imported;
+            document.getElementById('sites-progress').textContent =
+                data.sites_completed + ' / ' + data.sites_total;
+
+            // Update button states
+            document.getElementById('start-btn').disabled = data.running;
+            document.getElementById('stop-btn').disabled = !data.running;
+        })
+        .catch(error => {
+            console.error('Error fetching status:', error);
+        });
+}
+
+function startScraper() {
+    if (!confirm('Start the recipe scraper?')) {
+        return;
+    }
+
+    fetch('/scraper/start', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Scraper started successfully!');
+                updateScraperStatus();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error starting scraper: ' + error);
+        });
+}
+
+function stopScraper() {
+    if (!confirm('Stop the scraper? It will finish the current recipe and then stop.')) {
+        return;
+    }
+
+    fetch('/scraper/stop', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Scraper stopping...');
+                updateScraperStatus();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error stopping scraper: ' + error);
+        });
+}
+
+function setActiveSiteList(filename) {
+    fetch('/scraper/site-lists/active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: filename })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Active site list changed to: ' + filename);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error changing site list: ' + error);
+    });
+}
+
+// Clean up interval when leaving page
+window.addEventListener('beforeunload', function() {
+    clearInterval(statusInterval);
+});
+</script>
+{% endblock %}
